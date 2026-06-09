@@ -1,0 +1,11 @@
+alpha:
+- 0.5
+- 0.5
+downsampling: 'no'
+exp-number: 14
+gamma: 1.5
+hidden_state: 320
+hpo: 'no'
+layers: 2
+model: nn
+target: peptides
