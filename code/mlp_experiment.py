@@ -62,7 +62,9 @@ def run_experiment(
     target: str,
     layers: int = 2,
     alpha_weight: float = 0.1,
-    gamma: float = 3.0
+    gamma: float = 3.0,
+    loss_type: str = "focal",
+    downsample: bool = False
 ):
     df = pd.read_parquet("processed-data/peptide-partitions.pqt")
     df['y'] = df[f'y-{target}']
@@ -82,7 +84,8 @@ def run_experiment(
         "target": target,
         "model": "nn",
         "hpo": "no",
-        "downsampling": "no",
+        "loss_type": loss_type,
+        "downsampling": "yes" if downsample else "no",
         "layers": layers,
         "hidden_state": 320,
         "alpha": [alpha_weight, 1 - alpha_weight],
@@ -98,9 +101,17 @@ def run_experiment(
             valid_df = df[df[f'fold-{fold}'] == 'valid']
             test_df = df[df[f'fold-{fold}'] == 'test']
 
-            train_df.reset_index(inplace=True, drop=True)
-            valid_df.reset_index(inplace=True, drop=True)
-            test_df.reset_index(inplace=True, drop=True)
+            train_df = train_df.reset_index(drop=True)
+            valid_df = valid_df.reset_index(drop=True)
+            test_df = test_df.reset_index(drop=True)
+
+            # Undersampling
+            if downsample:
+                minority_count = int(train_df['y'].sum())
+                train_df = pd.concat([
+                    train_df[train_df['y'] == 0].sample(n=minority_count, random_state=seed),
+                    train_df[train_df['y'] == 1]
+                ]).sample(frac=1, random_state=seed).reset_index(drop=True)
 
             dataset = TensorDataset(
                 torch.from_numpy(np.stack(train_df['x'].to_numpy()).astype(np.float32)),
@@ -122,7 +133,17 @@ def run_experiment(
             device = torch.device("cuda" if torch.cuda.is_available() else "mps")
 
             model = MLP(in_features=320, hidden_state=metadata['hidden_state'], layers=metadata['layers'], num_classes=2).to(device)
-            criterion = FocalLoss(alpha=torch.tensor(metadata['alpha']).to(device), gamma=metadata['gamma'])
+
+            # Loss selection
+            if loss_type == "focal":
+                criterion = FocalLoss(
+                    alpha=torch.tensor(metadata['alpha']).to(device),
+                    gamma=metadata['gamma']
+                )
+            else:  # bce
+                class_weights = torch.tensor([1 - alpha_weight, alpha_weight]).to(device)
+                criterion = nn.CrossEntropyLoss(weight=class_weights)
+
             optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
         # Training
