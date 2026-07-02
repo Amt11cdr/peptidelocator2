@@ -141,7 +141,7 @@ def run_experiment(
                     gamma=metadata['gamma']
                 )
             else:  # bce
-                class_weights = torch.tensor([1 - alpha_weight, alpha_weight]).to(device)
+                class_weights = torch.tensor([alpha_weight, 1 - alpha_weight]).to(device)
                 criterion = nn.CrossEntropyLoss(weight=class_weights)
 
             optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
