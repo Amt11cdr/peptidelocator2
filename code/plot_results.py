@@ -11,8 +11,9 @@ os.makedirs(PLOTS_DIR, exist_ok=True)
 
 
 def load_experiments(target):
-    """Load all experiments for a given target (sites or peptides)."""
-    experiments = []
+    """Load all experiments for a given target (sites or peptides).
+    Only keeps the latest experiment per condition (loss_type + downsampling)."""
+    all_experiments = {}
     for fname in os.listdir(RESULTS_DIR):
         if not fname.endswith(".yml") or not fname.startswith(target):
             continue
@@ -24,7 +25,8 @@ def load_experiments(target):
         if not os.path.exists(csv_path):
             continue
         df = pd.read_csv(csv_path)
-        experiments.append({
+        key = (meta["loss_type"], meta["downsampling"])
+        entry = {
             "exp_num": exp_num,
             "loss_type": meta["loss_type"],
             "downsampling": meta["downsampling"],
@@ -36,8 +38,11 @@ def load_experiments(target):
             "recall_std": df["recall_macro"].std(),
             "valid_mcc": df["valid_mcc"].dropna() if "valid_mcc" in df.columns else None,
             "epoch": df["epoch"].dropna() if "epoch" in df.columns else None,
-        })
-    return experiments
+        }
+        # Keep only the latest experiment per condition
+        if key not in all_experiments or exp_num > all_experiments[key]["exp_num"]:
+            all_experiments[key] = entry
+    return list(all_experiments.values())
 
 
 def plot_bar_comparison(experiments, target):
