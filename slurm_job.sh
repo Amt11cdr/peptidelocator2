@@ -5,33 +5,20 @@
 #SBATCH --time=10-00:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
-#SBATCH --mem=16G
 #SBATCH --cpus-per-task=4
 
-# Create logs directory if it doesn't exist
 mkdir -p logs
 
-# Load anaconda and activate environment
 module load anaconda3/2023.09-0-gcc-11.5.0-mxpgp2g
-conda activate peptide-env
+source activate peptide-env
 
-# Move to repo directory (replace with your actual path on Sonic)
 cd $SLURM_SUBMIT_DIR
 
-for target in sites peptides; do
-    echo "===== Target: $target ====="
+python code/mlp_experiment.py peptides --loss-type focal --no-downsample
+python code/mlp_experiment.py peptides --loss-type focal --downsample
+python code/mlp_experiment.py peptides --loss-type bce --no-downsample
+python code/mlp_experiment.py peptides --loss-type bce --downsample
+python code/mlp_experiment.py sites --loss-type bce --no-downsample
+python code/mlp_experiment.py sites --loss-type bce --downsample
 
-    echo "-- Focal, no downsample --"
-    python code/mlp_experiment.py $target --loss-type focal --no-downsample
-
-    echo "-- Focal + downsample --"
-    python code/mlp_experiment.py $target --loss-type focal --downsample
-
-    echo "-- BCE, no downsample --"
-    python code/mlp_experiment.py $target --loss-type bce --no-downsample
-
-    echo "-- BCE + downsample --"
-    python code/mlp_experiment.py $target --loss-type bce --downsample
-done
-
-echo "All experiments done."
+echo "Done."
