@@ -1,3 +1,5 @@
+"""Plotting utilities for PeptideLocator2 experiment results."""
+
 import os
 import yaml
 import numpy as np
@@ -5,23 +7,28 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
-RESULTS_DIR = "results"
-PLOTS_DIR = "plots"
-os.makedirs(PLOTS_DIR, exist_ok=True)
 
+def load_experiments(target: str, results_dir: str = "results") -> list:
+    """Load all experiments for a given target.
 
-def load_experiments(target):
-    """Load all experiments for a given target (sites or peptides).
-    Only keeps the latest experiment per condition (loss_type + downsampling)."""
+    Only keeps the latest experiment per condition (loss_type + downsampling).
+
+    Args:
+        target: 'sites' or 'peptides'
+        results_dir: Directory containing result CSVs and YAMLs
+
+    Returns:
+        List of experiment dicts with metrics
+    """
     all_experiments = {}
-    for fname in os.listdir(RESULTS_DIR):
+    for fname in os.listdir(results_dir):
         if not fname.endswith(".yml") or not fname.startswith(target):
             continue
         exp_num = int(fname.replace(f"{target}-", "").replace(".yml", ""))
-        meta = yaml.safe_load(open(os.path.join(RESULTS_DIR, fname)))
+        meta = yaml.safe_load(open(os.path.join(results_dir, fname)))
         if "loss_type" not in meta:
-            continue  # skip old experiments without loss_type
-        csv_path = os.path.join(RESULTS_DIR, f"results-{target}-predictor-{exp_num}.csv")
+            continue
+        csv_path = os.path.join(results_dir, f"results-{target}-predictor-{exp_num}.csv")
         if not os.path.exists(csv_path):
             continue
         df = pd.read_csv(csv_path)
@@ -39,16 +46,23 @@ def load_experiments(target):
             "valid_mcc": df["valid_mcc"].dropna() if "valid_mcc" in df.columns else None,
             "epoch": df["epoch"].dropna() if "epoch" in df.columns else None,
         }
-        # Keep only the latest experiment per condition
         if key not in all_experiments or exp_num > all_experiments[key]["exp_num"]:
             all_experiments[key] = entry
     return list(all_experiments.values())
 
 
-def plot_bar_comparison(experiments, target):
-    """Bar chart comparing MCC across conditions."""
-    labels = [f"{e['loss_type'].upper()}\n{'Downsample' if e['downsampling'] == 'yes' else 'No Downsample'}"
-              for e in experiments]
+def plot_bar_comparison(experiments: list, target: str, plots_dir: str = "plots") -> None:
+    """Bar chart comparing MCC across conditions.
+
+    Args:
+        experiments: List of experiment dicts from load_experiments()
+        target: 'sites' or 'peptides'
+        plots_dir: Directory to save the plot
+    """
+    labels = [
+        f"{e['loss_type'].upper()}\n{'Downsample' if e['downsampling'] == 'yes' else 'No Downsample'}"
+        for e in experiments
+    ]
     mccs = [e["mcc_mean"] for e in experiments]
     stds = [e["mcc_std"] for e in experiments]
     colors = ["#2196F3" if e["loss_type"] == "focal" else "#FF5722" for e in experiments]
@@ -69,22 +83,33 @@ def plot_bar_comparison(experiments, target):
     bce_patch = mpatches.Patch(color="#FF5722", label="BCE Loss")
     ax.legend(handles=[focal_patch, bce_patch])
 
-    caption = (f"Figure 1: MCC (mean ± std across 5 seeds × 5 folds) for each loss and sampling "
-               f"condition on the {target} predictor. Higher is better. Focal loss with no "
-               f"undersampling achieves the best performance.")
-    fig.text(0.5, -0.04, caption, ha="center", fontsize=9, color="gray", wrap=True,
-             transform=fig.transFigure)
+    caption = (
+        f"Figure 1: MCC (mean ± std across 5 seeds × 5 folds) for each loss and sampling "
+        f"condition on the {target} predictor. Higher is better."
+    )
+    fig.text(0.5, -0.04, caption, ha="center", fontsize=9, color="gray",
+             wrap=True, transform=fig.transFigure)
     plt.tight_layout()
-    plt.savefig(os.path.join(PLOTS_DIR, f"mcc_comparison_{target}.png"), dpi=150, bbox_inches="tight")
+    os.makedirs(plots_dir, exist_ok=True)
+    out = os.path.join(plots_dir, f"mcc_comparison_{target}.png")
+    plt.savefig(out, dpi=150, bbox_inches="tight")
     plt.close()
-    print(f"Saved: plots/mcc_comparison_{target}.png")
+    print(f"Saved: {out}")
 
 
-def plot_learning_curves(experiments, target):
-    """Validation MCC vs epoch for each condition."""
+def plot_learning_curves(experiments: list, target: str, plots_dir: str = "plots") -> None:
+    """Validation MCC vs epoch for each condition.
+
+    Args:
+        experiments: List of experiment dicts from load_experiments()
+        target: 'sites' or 'peptides'
+        plots_dir: Directory to save the plot
+    """
     fig, ax = plt.subplots(figsize=(8, 5))
-    colors = {"focal_no": "#2196F3", "focal_yes": "#64B5F6",
-              "bce_no": "#FF5722", "bce_yes": "#FFAB91"}
+    colors = {
+        "focal_no": "#2196F3", "focal_yes": "#64B5F6",
+        "bce_no": "#FF5722", "bce_yes": "#FFAB91",
+    }
 
     for e in experiments:
         if e["valid_mcc"] is None or e["epoch"] is None:
@@ -104,18 +129,28 @@ def plot_learning_curves(experiments, target):
     ax.set_ylabel("Validation MCC", fontsize=12)
     ax.set_title(f"Learning Curves\n({target.capitalize()} Predictor)", fontsize=13)
     ax.legend()
-    caption = (f"Figure 2: Validation MCC per epoch (mean ± std) for each condition on the "
-               f"{target} predictor. Shaded area shows standard deviation across folds and seeds.")
-    fig.text(0.5, -0.04, caption, ha="center", fontsize=9, color="gray", wrap=True,
-             transform=fig.transFigure)
+    caption = (
+        f"Figure 2: Validation MCC per epoch (mean ± std) for each condition on the "
+        f"{target} predictor. Shaded area shows standard deviation across folds and seeds."
+    )
+    fig.text(0.5, -0.04, caption, ha="center", fontsize=9, color="gray",
+             wrap=True, transform=fig.transFigure)
     plt.tight_layout()
-    plt.savefig(os.path.join(PLOTS_DIR, f"learning_curves_{target}.png"), dpi=150, bbox_inches="tight")
+    os.makedirs(plots_dir, exist_ok=True)
+    out = os.path.join(plots_dir, f"learning_curves_{target}.png")
+    plt.savefig(out, dpi=150, bbox_inches="tight")
     plt.close()
-    print(f"Saved: plots/learning_curves_{target}.png")
+    print(f"Saved: {out}")
 
 
-def plot_precision_recall(experiments, target):
-    """Precision vs Recall scatter for each condition."""
+def plot_precision_recall(experiments: list, target: str, plots_dir: str = "plots") -> None:
+    """Precision vs Recall scatter for each condition.
+
+    Args:
+        experiments: List of experiment dicts from load_experiments()
+        target: 'sites' or 'peptides'
+        plots_dir: Directory to save the plot
+    """
     fig, ax = plt.subplots(figsize=(7, 5))
     colors = {"focal": "#2196F3", "bce": "#FF5722"}
     markers = {"no": "o", "yes": "^"}
@@ -133,27 +168,43 @@ def plot_precision_recall(experiments, target):
     ax.set_ylabel("Precision (weighted)", fontsize=12)
     ax.set_title(f"Precision vs Recall\n({target.capitalize()} Predictor)", fontsize=13)
     ax.legend()
-    caption = (f"Figure 3: Precision vs Recall (mean ± std) for each condition on the {target} "
-               f"predictor. Circle = no undersampling, triangle = undersampling.")
-    fig.text(0.5, -0.04, caption, ha="center", fontsize=9, color="gray", wrap=True,
-             transform=fig.transFigure)
+    caption = (
+        f"Figure 3: Precision vs Recall (mean ± std) for each condition on the {target} "
+        f"predictor. Circle = no undersampling, triangle = undersampling."
+    )
+    fig.text(0.5, -0.04, caption, ha="center", fontsize=9, color="gray",
+             wrap=True, transform=fig.transFigure)
     plt.tight_layout()
-    plt.savefig(os.path.join(PLOTS_DIR, f"precision_recall_{target}.png"), dpi=150, bbox_inches="tight")
+    os.makedirs(plots_dir, exist_ok=True)
+    out = os.path.join(plots_dir, f"precision_recall_{target}.png")
+    plt.savefig(out, dpi=150, bbox_inches="tight")
     plt.close()
-    print(f"Saved: plots/precision_recall_{target}.png")
+    print(f"Saved: {out}")
 
 
-if __name__ == "__main__":
-    for target in ["sites", "peptides"]:
-        experiments = load_experiments(target)
+def plot_all(targets: list = None, results_dir: str = "results", plots_dir: str = "plots") -> None:
+    """Generate all plots for all targets.
+
+    Args:
+        targets: List of targets, default ['sites', 'peptides']
+        results_dir: Directory with result files
+        plots_dir: Directory to save plots
+    """
+    if targets is None:
+        targets = ["sites", "peptides"]
+
+    for target in targets:
+        experiments = load_experiments(target, results_dir=results_dir)
         if not experiments:
             print(f"No experiments found for {target}")
             continue
         experiments = sorted(experiments, key=lambda x: x["exp_num"])
         print(f"\n=== {target.upper()} ===")
         for e in experiments:
-            print(f"  Exp {e['exp_num']} | {e['loss_type']} | downsample={e['downsampling']} | MCC={e['mcc_mean']:.3f}±{e['mcc_std']:.3f}")
-        plot_bar_comparison(experiments, target)
-        plot_learning_curves(experiments, target)
-        plot_precision_recall(experiments, target)
-    print("\nAll plots saved to plots/")
+            print(f"  Exp {e['exp_num']} | {e['loss_type']} | downsample={e['downsampling']} "
+                  f"| MCC={e['mcc_mean']:.3f}±{e['mcc_std']:.3f}")
+        plot_bar_comparison(experiments, target, plots_dir=plots_dir)
+        plot_learning_curves(experiments, target, plots_dir=plots_dir)
+        plot_precision_recall(experiments, target, plots_dir=plots_dir)
+
+    print(f"\nAll plots saved to {plots_dir}/")

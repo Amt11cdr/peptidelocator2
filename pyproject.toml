@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "peptidelocator"
+version = "0.1.0"
+description = "Predict cleavage sites and peptide regions in protein sequences using PLMs and neural networks."
+authors = [
+    { name = "Amritansh Tiwari", email = "amritansh2u@gmail.com" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.0",
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "scikit-learn>=1.3",
+    "scipy>=1.10",
+    "pyyaml>=6.0",
+    "tqdm>=4.65",
+    "matplotlib>=3.7",
+    "pyarrow>=12.0",
+]
+
+[project.scripts]
+peptidelocator = "peptidelocator.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["peptidelocator*"]
