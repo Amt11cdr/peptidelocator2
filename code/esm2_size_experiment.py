@@ -27,12 +27,18 @@ import typer
 sys.path.insert(0, os.path.dirname(__file__))
 from evaluate import evaluate_model
 
-# ESM2 model size → embedding dimension
+# Model name → embedding dimension
+# ESM2 names are passed as short sizes; ProtT5 names are passed in full.
 MODEL_DIMS = {
-    "8m":   320,
-    "150m": 640,
-    "650m": 1280,
+    "8m":        320,
+    "150m":      640,
+    "650m":      1280,
+    "prot-t5-xl":  1024,
+    "prost-t5":    1024,
 }
+
+# ESM2 sizes get prefixed with "esm2-"; ProtT5 names are used as-is.
+ESM2_SIZES = {"8m", "150m", "650m"}
 
 PARTITIONS_BASE = "processed-data/peptide-partitions.pqt"
 CACHED_PARTITIONS = "processed-data/peptide-partitions-{model_size}.pqt"
@@ -124,11 +130,12 @@ def compute_and_cache_embeddings(model_size: str) -> str:
     print(f"  {len(sequences)} proteins to embed")
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    re = RepEngineLM(f"esm2-{model_size}", average_pooling=False)
+    model_name = f"esm2-{model_size}" if model_size in ESM2_SIZES else model_size
+    re = RepEngineLM(model_name, average_pooling=False)
     re.move_to_device(device)
 
     # Use smaller batches for larger models
-    batch_size = {"8m": 64, "150m": 32, "650m": 8}.get(model_size, 16)
+    batch_size = {"8m": 64, "150m": 32, "650m": 8}.get(model_size, 8)
     reps = re.compute_reps(sequences, batch_size=batch_size)
 
     # Flatten to per-residue
@@ -166,11 +173,11 @@ def run_experiment(
     batch_size: int = 64,
     lr: float = 1e-3,
 ):
-    assert model_size in MODEL_DIMS, f"model_size must be one of {list(MODEL_DIMS)}"
+    assert model_size in MODEL_DIMS, f"--model-size must be one of {list(MODEL_DIMS)}"
     assert loss in ("focal", "bce"), "--loss must be 'focal' or 'bce'"
     in_features = MODEL_DIMS[model_size]
 
-    # Get (or compute) the partitions file for this model size
+    # Get (or compute) the partitions file for this model
     if model_size == "8m":
         data_path = PARTITIONS_BASE
     else:
@@ -191,7 +198,7 @@ def run_experiment(
 
     metadata = {
         "target": target,
-        "model": f"esm2-{model_size}",
+        "model": f"esm2-{model_size}" if model_size in ESM2_SIZES else model_size,
         "model_size": model_size,
         "loss_type": loss,
         "downsampling": "no",
