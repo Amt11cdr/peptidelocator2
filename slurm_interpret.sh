@@ -15,9 +15,9 @@ source activate peptide-env
 cd $SLURM_SUBMIT_DIR
 
 echo "===== UMAP Analysis ====="
-python code/interpret_umap.py --n-samples 2000 --output plots/umap
+CUDA_VISIBLE_DEVICES="" python code/interpret_umap.py --n-samples 2000 --output plots/umap
 
 echo "===== Attention Analysis ====="
-python code/interpret_attention.py --window 15 --output plots/attention
+CUDA_VISIBLE_DEVICES="" python code/interpret_attention.py --window 15 --output plots/attention
 
 echo "All interpretability analyses done."
