@@ -158,6 +158,7 @@ def compute_and_cache_embeddings(model_size: str) -> str:
 def run_experiment(
     target: str,
     model_size: str = "8m",
+    loss: str = "focal",
     layers: int = 2,
     alpha_weight: float = 0.1,
     gamma: float = 3.0,
@@ -166,6 +167,7 @@ def run_experiment(
     lr: float = 1e-3,
 ):
     assert model_size in MODEL_DIMS, f"model_size must be one of {list(MODEL_DIMS)}"
+    assert loss in ("focal", "bce"), "--loss must be 'focal' or 'bce'"
     in_features = MODEL_DIMS[model_size]
 
     # Get (or compute) the partitions file for this model size
@@ -191,7 +193,7 @@ def run_experiment(
         "target": target,
         "model": f"esm2-{model_size}",
         "model_size": model_size,
-        "loss_type": "focal",
+        "loss_type": loss,
         "downsampling": "no",
         "layers": layers,
         "hidden_state": in_features,
@@ -226,10 +228,13 @@ def run_experiment(
 
             model = MLP(in_features=in_features, hidden_state=in_features,
                         layers=layers).to(device)
-            criterion = FocalLoss(
-                alpha=torch.tensor([alpha_weight, 1 - alpha_weight]).to(device),
-                gamma=gamma,
-            )
+            if loss == "focal":
+                criterion = FocalLoss(
+                    alpha=torch.tensor([alpha_weight, 1 - alpha_weight]).to(device),
+                    gamma=gamma,
+                )
+            else:  # plain BCE — no class weighting
+                criterion = nn.CrossEntropyLoss()
             optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
             for epoch in tqdm(range(epochs), desc=f"F{fold}S{seed}"):

@@ -52,7 +52,8 @@ def reconstruct_filtered_sequences():
 
 # ── Embedding extraction ───────────────────────────────────────────────────────
 
-def get_layer_embeddings(sequences, labels_per_protein, device, batch_size=16):
+def get_layer_embeddings(sequences, labels_per_protein, device, batch_size=16,
+                         model_path=None):
     """
     Run ESM2-8M forward pass and collect per-residue hidden states at all 6 layers.
 
@@ -61,14 +62,22 @@ def get_layer_embeddings(sequences, labels_per_protein, device, batch_size=16):
         labels_per_protein: list of np.arrays (one per protein), 1=cleavage site
         device: torch device
         batch_size: number of sequences per forward pass
+        model_path: if set, load ESM2 from this local checkpoint (fine-tuned model)
+                    instead of the HuggingFace pretrained weights
 
     Returns:
         layer_embeddings: dict {layer_idx: np.array (n_residues, 320)}
         all_labels: np.array (n_residues,)
     """
-    print("Loading ESM2-8M from HuggingFace...")
-    tokenizer = EsmTokenizer.from_pretrained("facebook/esm2_t6_8M_UR50D")
-    model = EsmModel.from_pretrained("facebook/esm2_t6_8M_UR50D").to(device)
+    if model_path:
+        esm_path = os.path.join(model_path, "esm")
+        print(f"Loading fine-tuned ESM2-8M from: {esm_path}")
+        tokenizer = EsmTokenizer.from_pretrained("facebook/esm2_t6_8M_UR50D")
+        model = EsmModel.from_pretrained(esm_path).to(device)
+    else:
+        print("Loading ESM2-8M from HuggingFace (pretrained)...")
+        tokenizer = EsmTokenizer.from_pretrained("facebook/esm2_t6_8M_UR50D")
+        model = EsmModel.from_pretrained("facebook/esm2_t6_8M_UR50D").to(device)
     model.eval()
 
     # 7 sets of hidden states: embedding layer + 6 transformer layers
@@ -136,7 +145,7 @@ def balanced_subsample(embeddings_dict, labels, n_per_class=2000, seed=42):
 
 # ── UMAP + plotting ───────────────────────────────────────────────────────────
 
-def run_and_plot(layer_embeddings, labels, output_dir, n_per_class):
+def run_and_plot(layer_embeddings, labels, output_dir, n_per_class, model_path=None):
     os.makedirs(output_dir, exist_ok=True)
 
     sub_embeddings, sub_labels, _, _ = balanced_subsample(
@@ -189,8 +198,9 @@ def run_and_plot(layer_embeddings, labels, output_dir, n_per_class):
     fig.legend(handles=legend_handles, loc="lower center", ncol=2,
                fontsize=11, frameon=False, bbox_to_anchor=(0.5, -0.02))
 
+    model_label = "Fine-tuned" if model_path else "Pretrained"
     fig.suptitle(
-        "ESM2-8M Per-Residue Representations by Layer\n"
+        f"ESM2-8M Per-Residue Representations by Layer ({model_label})\n"
         f"(PCA, {n_per_class} residues per class)",
         fontsize=14, fontweight="bold", y=1.01,
     )
@@ -206,10 +216,14 @@ def run_and_plot(layer_embeddings, labels, output_dir, n_per_class):
 def main():
     parser = argparse.ArgumentParser(description="PCA of ESM2 layer embeddings")
     parser.add_argument("--n-samples", type=int, default=2000,
-                        help="Residues per class for UMAP (default 2000)")
+                        help="Residues per class for PCA (default 2000)")
     parser.add_argument("--output", default="plots/umap",
                         help="Output directory for plots")
     parser.add_argument("--batch-size", type=int, default=16)
+    parser.add_argument("--model-path", default=None,
+                        help="Path to fine-tuned ESM2 checkpoint directory "
+                             "(e.g. checkpoints/finetune_esm2_8m_sites_fold0_seed0). "
+                             "If not set, uses pretrained facebook/esm2_t6_8M_UR50D.")
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -232,11 +246,13 @@ def main():
 
     print("\nExtracting layer embeddings (this may take a while)...")
     layer_embeddings, all_labels = get_layer_embeddings(
-        sequences, labels_per_protein, device, batch_size=args.batch_size
+        sequences, labels_per_protein, device, batch_size=args.batch_size,
+        model_path=args.model_path,
     )
 
-    print("\nRunning UMAP and plotting...")
-    run_and_plot(layer_embeddings, all_labels, args.output, args.n_samples)
+    print("\nRunning PCA and plotting...")
+    run_and_plot(layer_embeddings, all_labels, args.output, args.n_samples,
+                 model_path=args.model_path)
 
 
 if __name__ == "__main__":
