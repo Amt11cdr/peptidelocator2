@@ -18,6 +18,7 @@ import torch
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from sklearn.decomposition import PCA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 from transformers import EsmModel, EsmTokenizer
 
@@ -209,6 +210,67 @@ def run_and_plot(layer_embeddings, labels, output_dir, n_per_class, model_path=N
     plt.savefig(out_path, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"\nSaved: {out_path}")
+
+    # ── LDA Fisher ratio per layer ────────────────────────────────────────────
+    # For each layer, fit a 1-component LDA on the full (non-subsampled)
+    # embeddings and compute Fisher's criterion:
+    #   ratio = between-class variance / within-class variance
+    # A higher ratio means the two classes are more linearly separable.
+    print("\nComputing LDA Fisher ratios per layer...")
+    fisher_ratios = []
+    for layer_idx in range(6):
+        X = sub_embeddings[layer_idx + 1]
+        y = sub_labels
+
+        lda = LinearDiscriminantAnalysis(n_components=1)
+        X_proj = lda.fit_transform(X, y)  # (n_samples, 1)
+        X_proj = X_proj[:, 0]
+
+        # Between-class variance
+        classes = np.unique(y)
+        overall_mean = X_proj.mean()
+        n = len(X_proj)
+        between_var = sum(
+            np.sum(y == c) * (X_proj[y == c].mean() - overall_mean) ** 2
+            for c in classes
+        ) / n
+
+        # Within-class variance
+        within_var = sum(
+            np.sum(y == c) * X_proj[y == c].var()
+            for c in classes
+        ) / n
+
+        ratio = between_var / within_var if within_var > 0 else 0.0
+        fisher_ratios.append(ratio)
+        print(f"  Layer {layer_idx}: Fisher ratio = {ratio:.4f}")
+
+    # Plot Fisher ratios as a bar chart
+    layer_labels = [f"L{i}" for i in range(6)]
+    fig, ax = plt.subplots(figsize=(7, 4))
+    bars = ax.bar(layer_labels, fisher_ratios, color="#5C6BC0", edgecolor="white",
+                  linewidth=0.8)
+    ax.set_xlabel("ESM2-8M Layer", fontsize=12)
+    ax.set_ylabel("Fisher's Criterion\n(between / within class variance)", fontsize=11)
+    model_label = "Fine-tuned" if model_path else "Pretrained"
+    ax.set_title(
+        f"LDA Class Separability by Layer — ESM2-8M ({model_label})\n"
+        f"({n_per_class} residues per class)",
+        fontsize=12, fontweight="bold"
+    )
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    # Annotate bars
+    for bar, val in zip(bars, fisher_ratios):
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.001,
+                f"{val:.3f}", ha="center", va="bottom", fontsize=9)
+
+    plt.tight_layout()
+    lda_path = os.path.join(output_dir, "lda_fisher_ratio.png")
+    plt.savefig(lda_path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"Saved: {lda_path}")
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
