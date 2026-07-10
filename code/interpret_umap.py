@@ -152,12 +152,12 @@ def run_and_plot(layer_embeddings, labels, output_dir, n_per_class):
     )
 
     layer_names = [
-        "Layer 0 — local chemistry",
-        "Layer 1 — local motifs",
-        "Layer 2 — short-range patterns",
-        "Layer 3 — sequence context",
-        "Layer 4 — regional integration",
-        "Layer 5 — output compilation",
+        "Layer 0 — no class structure",
+        "Layer 1 — cluster formation begins",
+        "Layer 2 — mixed clustering, no separation",
+        "Layer 3 — cleavage signal emerging",
+        "Layer 4 — peak class separation",
+        "Layer 5 — stable separation",
     ]
 
     colors = {0: "#90CAF9", 1: "#EF9A9A"}  # blue=non-cleavage, red=cleavage
