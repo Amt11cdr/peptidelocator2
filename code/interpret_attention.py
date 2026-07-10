@@ -69,7 +69,10 @@ def extract_attention_profiles(sequences, labels_per_protein, window, device, ba
     """
     print("Loading ESM2-8M from HuggingFace...")
     tokenizer = EsmTokenizer.from_pretrained("facebook/esm2_t6_8M_UR50D")
-    model = EsmModel.from_pretrained("facebook/esm2_t6_8M_UR50D").to(device)
+    model = EsmModel.from_pretrained(
+        "facebook/esm2_t6_8M_UR50D",
+        attn_implementation="eager"
+    ).to(device)
     model.eval()
 
     W = window
