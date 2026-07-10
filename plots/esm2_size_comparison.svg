@@ -1,0 +1,138 @@
+<svg viewBox="0 0 720 520" xmlns="http://www.w3.org/2000/svg"
+     font-family="'Helvetica Neue', Arial, sans-serif">
+
+  <!-- White background -->
+  <rect width="720" height="520" fill="#ffffff"/>
+
+  <!-- ── Chart area: x=80..680, y=70..370 (300px = MCC 0.0–1.0) ── -->
+
+  <!-- Gridlines -->
+  <line x1="80" y1="370" x2="680" y2="370" stroke="#dddddd" stroke-width="0.8"/>
+  <line x1="80" y1="310" x2="680" y2="310" stroke="#dddddd" stroke-width="0.8"/>
+  <line x1="80" y1="250" x2="680" y2="250" stroke="#dddddd" stroke-width="0.8"/>
+  <line x1="80" y1="190" x2="680" y2="190" stroke="#dddddd" stroke-width="0.8"/>
+  <line x1="80" y1="130" x2="680" y2="130" stroke="#dddddd" stroke-width="0.8"/>
+  <line x1="80" y1="70"  x2="680" y2="70"  stroke="#dddddd" stroke-width="0.8"/>
+
+  <!-- Y-axis ticks and labels -->
+  <text x="72" y="374" font-size="11" fill="#444444" text-anchor="end">0.0</text>
+  <line x1="76" y1="370" x2="80" y2="370" stroke="#444444" stroke-width="1"/>
+
+  <text x="72" y="314" font-size="11" fill="#444444" text-anchor="end">0.2</text>
+  <line x1="76" y1="310" x2="80" y2="310" stroke="#444444" stroke-width="1"/>
+
+  <text x="72" y="254" font-size="11" fill="#444444" text-anchor="end">0.4</text>
+  <line x1="76" y1="250" x2="80" y2="250" stroke="#444444" stroke-width="1"/>
+
+  <text x="72" y="194" font-size="11" fill="#444444" text-anchor="end">0.6</text>
+  <line x1="76" y1="190" x2="80" y2="190" stroke="#444444" stroke-width="1"/>
+
+  <text x="72" y="134" font-size="11" fill="#444444" text-anchor="end">0.8</text>
+  <line x1="76" y1="130" x2="80" y2="130" stroke="#444444" stroke-width="1"/>
+
+  <text x="72" y="74"  font-size="11" fill="#444444" text-anchor="end">1.0</text>
+  <line x1="76" y1="70"  x2="80" y2="70"  stroke="#444444" stroke-width="1"/>
+
+  <!-- Y-axis label -->
+  <text x="22" y="220" font-size="12" fill="#222222" text-anchor="middle"
+        transform="rotate(-90 22 220)">Matthews Correlation Coefficient (MCC)</text>
+
+  <!-- Axes -->
+  <line x1="80" y1="70" x2="80" y2="370" stroke="#333333" stroke-width="1.5"/>
+  <line x1="80" y1="370" x2="680" y2="370" stroke="#333333" stroke-width="1.5"/>
+
+  <!-- ══ ESM2-8M (group centre x=180) ══ -->
+  <!-- Sites: MCC=0.551, top=370-0.551*300=204.7 -->
+  <rect x="148" y="205" width="32" height="165" fill="#2c7bb6"/>
+  <!-- Error bar: ±0.033 → top=370-(0.551+0.033)*300=194.8, bot=370-(0.551-0.033)*300=214.6 -->
+  <line x1="164" y1="195" x2="164" y2="215" stroke="#111111" stroke-width="1.5"/>
+  <line x1="158" y1="195" x2="170" y2="195" stroke="#111111" stroke-width="1.5"/>
+  <line x1="158" y1="215" x2="170" y2="215" stroke="#111111" stroke-width="1.5"/>
+  <text x="164" y="200" font-size="9.5" fill="#222222" text-anchor="middle" dy="-4">0.551</text>
+
+  <!-- Peptides: MCC=0.739, top=370-0.739*300=148.3 -->
+  <rect x="188" y="148" width="32" height="222" fill="#1a9641"/>
+  <!-- Error bar: ±0.016 → top=370-(0.739+0.016)*300=143.5, bot=370-(0.739-0.016)*300=153.3 -->
+  <line x1="204" y1="144" x2="204" y2="153" stroke="#111111" stroke-width="1.5"/>
+  <line x1="198" y1="144" x2="210" y2="144" stroke="#111111" stroke-width="1.5"/>
+  <line x1="198" y1="153" x2="210" y2="153" stroke="#111111" stroke-width="1.5"/>
+  <text x="204" y="148" font-size="9.5" fill="#222222" text-anchor="middle" dy="-4">0.739</text>
+
+  <!-- X label -->
+  <text x="180" y="390" font-size="12" fill="#222222" text-anchor="middle" font-weight="500">ESM2-8M</text>
+  <text x="180" y="406" font-size="10" fill="#666666" text-anchor="middle">(320-dim)</text>
+
+  <!-- ══ ESM2-150M (group centre x=380) ══ -->
+  <!-- Sites: MCC=0.624, top=370-0.624*300=182.8 -->
+  <rect x="348" y="183" width="32" height="187" fill="#2c7bb6"/>
+  <!-- Error bar: ±0.041 → top=370-(0.624+0.041)*300=170.5, bot=370-(0.624-0.041)*300=195.3 -->
+  <line x1="364" y1="171" x2="364" y2="195" stroke="#111111" stroke-width="1.5"/>
+  <line x1="358" y1="171" x2="370" y2="171" stroke="#111111" stroke-width="1.5"/>
+  <line x1="358" y1="195" x2="370" y2="195" stroke="#111111" stroke-width="1.5"/>
+  <text x="364" y="183" font-size="9.5" fill="#222222" text-anchor="middle" dy="-4">0.624</text>
+
+  <!-- Peptides: MCC=0.789, top=370-0.789*300=133.3 -->
+  <rect x="388" y="133" width="32" height="237" fill="#1a9641"/>
+  <!-- Error bar: ±0.017 → top=370-(0.789+0.017)*300=128.2, bot=370-(0.789-0.017)*300=138.4 -->
+  <line x1="404" y1="128" x2="404" y2="138" stroke="#111111" stroke-width="1.5"/>
+  <line x1="398" y1="128" x2="410" y2="128" stroke="#111111" stroke-width="1.5"/>
+  <line x1="398" y1="138" x2="410" y2="138" stroke="#111111" stroke-width="1.5"/>
+  <text x="404" y="133" font-size="9.5" fill="#222222" text-anchor="middle" dy="-4">0.789</text>
+
+  <!-- Best model bracket -->
+  <line x1="348" y1="62" x2="420" y2="62" stroke="#555555" stroke-width="1"/>
+  <line x1="348" y1="62" x2="348" y2="68" stroke="#555555" stroke-width="1"/>
+  <line x1="420" y1="62" x2="420" y2="68" stroke="#555555" stroke-width="1"/>
+  <text x="384" y="58" font-size="10" fill="#555555" text-anchor="middle">best</text>
+
+  <!-- X label -->
+  <text x="380" y="390" font-size="12" fill="#222222" text-anchor="middle" font-weight="500">ESM2-150M</text>
+  <text x="380" y="406" font-size="10" fill="#666666" text-anchor="middle">(640-dim)</text>
+
+  <!-- ══ ESM2-650M (group centre x=580) ══ -->
+  <!-- Sites: MCC=0.575, top=370-0.575*300=197.5 -->
+  <rect x="548" y="198" width="32" height="172" fill="#2c7bb6"/>
+  <!-- Error bar: ±0.235 → top=370-(0.575+0.235)*300=127, bot=370-(0.575-0.235)*300=268 -->
+  <line x1="564" y1="127" x2="564" y2="268" stroke="#111111" stroke-width="1.5"/>
+  <line x1="558" y1="127" x2="570" y2="127" stroke="#111111" stroke-width="1.5"/>
+  <line x1="558" y1="268" x2="570" y2="268" stroke="#111111" stroke-width="1.5"/>
+  <text x="564" y="198" font-size="9.5" fill="#222222" text-anchor="middle" dy="-4">0.575</text>
+
+  <!-- Peptides: MCC=0.759, top=370-0.759*300=142.3 -->
+  <rect x="588" y="142" width="32" height="228" fill="#1a9641"/>
+  <!-- Error bar: ±0.077 → top=370-(0.759+0.077)*300=119.2, bot=370-(0.759-0.077)*300=165.4 -->
+  <line x1="604" y1="119" x2="604" y2="165" stroke="#111111" stroke-width="1.5"/>
+  <line x1="598" y1="119" x2="610" y2="119" stroke="#111111" stroke-width="1.5"/>
+  <line x1="598" y1="165" x2="610" y2="165" stroke="#111111" stroke-width="1.5"/>
+  <text x="604" y="142" font-size="9.5" fill="#222222" text-anchor="middle" dy="-4">0.759</text>
+
+  <!-- X label -->
+  <text x="580" y="390" font-size="12" fill="#222222" text-anchor="middle" font-weight="500">ESM2-650M</text>
+  <text x="580" y="406" font-size="10" fill="#666666" text-anchor="middle">(1280-dim)</text>
+
+  <!-- ── Legend ── -->
+  <rect x="260" y="424" width="12" height="12" fill="#2c7bb6"/>
+  <text x="278" y="435" font-size="11" fill="#222222">Cleavage sites</text>
+  <rect x="380" y="424" width="12" height="12" fill="#1a9641"/>
+  <text x="398" y="435" font-size="11" fill="#222222">Peptide regions</text>
+
+  <!-- ── Title ── -->
+  <text x="380" y="28" font-size="14" font-weight="500" fill="#111111" text-anchor="middle">
+    Effect of ESM2 Model Size on Prediction Performance
+  </text>
+  <text x="380" y="46" font-size="11" fill="#555555" text-anchor="middle">
+    Focal Loss (α=0.1, γ=3.0) · Frozen embeddings · 5-fold × 5-seed cross-validation
+  </text>
+
+  <!-- ── Caption ── -->
+  <text x="80" y="460" font-size="10" fill="#555555">
+    Figure 1. MCC (mean ± s.d.) for cleavage site and peptide region prediction across three ESM2 model sizes.
+  </text>
+  <text x="80" y="475" font-size="10" fill="#555555">
+    ESM2-150M achieves the highest performance on both tasks. ESM2-650M exhibits high variance on cleavage
+  </text>
+  <text x="80" y="490" font-size="10" fill="#555555">
+    site prediction (±0.235), suggesting instability under current hyperparameters at larger scale.
+  </text>
+
+</svg>
