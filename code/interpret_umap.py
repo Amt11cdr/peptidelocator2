@@ -1,15 +1,12 @@
 """
-UMAP of per-residue ESM2-8M embeddings at each of the 6 transformer layers.
+PCA of per-residue ESM2-8M embeddings at each of the 6 transformer layers.
 
 For each layer (0-5), collects embeddings for a balanced subsample of cleavage
-site and non-cleavage residues, runs UMAP, and saves a 2x3 grid plot.
+site and non-cleavage residues, runs PCA, and saves a 2x3 grid plot.
 
 Usage:
     python code/interpret_umap.py
     python code/interpret_umap.py --n-samples 3000 --output plots/umap
-
-Requirements (install if missing):
-    pip install umap-learn
 """
 
 import os
@@ -20,12 +17,7 @@ import pandas as pd
 import torch
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-
-try:
-    import umap
-except ImportError:
-    print("umap-learn not installed. Run: pip install umap-learn")
-    sys.exit(1)
+from sklearn.decomposition import PCA
 
 from transformers import EsmModel, EsmTokenizer
 
@@ -164,13 +156,14 @@ def run_and_plot(layer_embeddings, labels, output_dir, n_per_class):
     fig, axes = plt.subplots(2, 3, figsize=(15, 10))
     axes = axes.flatten()
 
-    reducer = umap.UMAP(n_components=2, random_state=42, n_neighbors=30, min_dist=0.1)
-
     for layer_idx in range(6):
-        print(f"  Running UMAP for layer {layer_idx}...")
+        print(f"  Running PCA for layer {layer_idx}...")
         ax = axes[layer_idx]
         X = sub_embeddings[layer_idx + 1]  # +1 because index 0 is embedding layer
-        embedding_2d = reducer.fit_transform(X)
+
+        pca = PCA(n_components=2, random_state=42)
+        embedding_2d = pca.fit_transform(X)
+        var1, var2 = pca.explained_variance_ratio_ * 100
 
         for label_val, color in colors.items():
             mask = sub_labels == label_val
@@ -184,8 +177,9 @@ def run_and_plot(layer_embeddings, labels, output_dir, n_per_class):
             )
 
         ax.set_title(layer_names[layer_idx], fontsize=11, fontweight="bold")
-        ax.set_xticks([])
-        ax.set_yticks([])
+        ax.set_xlabel(f"PC1 ({var1:.1f}% var)", fontsize=9)
+        ax.set_ylabel(f"PC2 ({var2:.1f}% var)", fontsize=9)
+        ax.tick_params(labelsize=7)
 
     # Legend
     legend_handles = [
@@ -197,11 +191,11 @@ def run_and_plot(layer_embeddings, labels, output_dir, n_per_class):
 
     fig.suptitle(
         "ESM2-8M Per-Residue Representations by Layer\n"
-        f"(UMAP, {n_per_class} residues per class)",
+        f"(PCA, {n_per_class} residues per class)",
         fontsize=14, fontweight="bold", y=1.01,
     )
     plt.tight_layout()
-    out_path = os.path.join(output_dir, "umap_layers.png")
+    out_path = os.path.join(output_dir, "pca_layers.png")
     plt.savefig(out_path, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"\nSaved: {out_path}")
@@ -210,7 +204,7 @@ def run_and_plot(layer_embeddings, labels, output_dir, n_per_class):
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description="UMAP of ESM2 layer embeddings")
+    parser = argparse.ArgumentParser(description="PCA of ESM2 layer embeddings")
     parser.add_argument("--n-samples", type=int, default=2000,
                         help="Residues per class for UMAP (default 2000)")
     parser.add_argument("--output", default="plots/umap",

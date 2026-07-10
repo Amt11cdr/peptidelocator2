@@ -13,7 +13,7 @@ source activate peptide-env
 
 cd $SLURM_SUBMIT_DIR
 
-echo "===== UMAP Analysis (relabelled) ====="
+echo "===== PCA Analysis ====="
 CUDA_VISIBLE_DEVICES="" python code/interpret_umap.py --n-samples 2000 --output plots/umap
 
 echo "===== Attention Analysis ====="
