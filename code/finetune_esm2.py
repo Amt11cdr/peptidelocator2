@@ -176,7 +176,7 @@ def run_experiment(
     target: str,
     epochs:    int   = typer.Option(5,    help="Training epochs per fold/seed"),
     batch_size: int  = typer.Option(4,    help="Proteins per batch"),
-    lr_esm:    float = typer.Option(1e-5, help="LR for ESM2 backbone"),
+    lr_esm:    float = typer.Option(1e-7, help="LR for unfrozen ESM2 layer 5"),
     lr_head:   float = typer.Option(1e-3, help="LR for MLP head"),
     accum_steps: int = typer.Option(8,    help="Gradient accumulation steps"),
     alpha_weight: float = typer.Option(0.1, help="Focal loss alpha (minority class)"),
@@ -220,7 +220,7 @@ def run_experiment(
 
     metadata = {
         "target":       target,
-        "model":        "esm2-8m-finetuned",
+        "model":        "esm2-8m-layer5-finetuned",
         "loss_type":    "focal",
         "epochs":       epochs,
         "batch_size":   batch_size,
@@ -262,9 +262,17 @@ def run_experiment(
             model = ESM2Classifier().to(device)
             criterion = FocalLoss(alpha=alpha_weight, gamma=gamma).to(device)
 
+            # Freeze all ESM2 params, then unfreeze layer 5 only (Raul: 1e-7 lr)
+            for param in model.esm.parameters():
+                param.requires_grad = False
+            for param in model.esm.encoder.layer[5].parameters():
+                param.requires_grad = True
+
             optimizer = torch.optim.AdamW([
-                {"params": model.esm.parameters(),  "lr": lr_esm,  "weight_decay": 0.01},
-                {"params": model.head.parameters(), "lr": lr_head, "weight_decay": 0.0},
+                {"params": model.esm.encoder.layer[5].parameters(),
+                 "lr": lr_esm, "weight_decay": 0.01},
+                {"params": model.head.parameters(),
+                 "lr": lr_head, "weight_decay": 0.0},
             ])
 
             best_valid_mcc = -1.0
