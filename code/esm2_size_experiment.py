@@ -41,7 +41,8 @@ MODEL_DIMS = {
 ESM2_SIZES = {"8m", "150m", "650m"}
 
 PARTITIONS_BASE = "processed-data/peptide-partitions.pqt"
-CACHED_PARTITIONS = "processed-data/peptide-partitions-{model_size}.pqt"
+_CACHE_DIR = os.environ.get("PEPTIDE_CACHE_DIR", "processed-data")
+CACHED_PARTITIONS = _CACHE_DIR + "/peptide-partitions-{model_size}.pqt"
 
 
 # ── Model ────────────────────────────────────────────────────────────────────

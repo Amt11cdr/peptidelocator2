@@ -14,6 +14,10 @@ source activate peptide-env
 
 cd $SLURM_SUBMIT_DIR
 
+# Write large T5 embedding cache to $HOME (scratch quota is full)
+export PEPTIDE_CACHE_DIR=$HOME/peptide-cache
+mkdir -p $PEPTIDE_CACHE_DIR
+
 echo "===== prot-t5-xl: sites ====="
 python code/esm2_size_experiment.py sites --model-size prot-t5-xl
 
