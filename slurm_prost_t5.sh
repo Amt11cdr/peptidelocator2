@@ -10,7 +10,8 @@
 mkdir -p logs
 
 module load anaconda3/2023.09-0-gcc-11.5.0-mxpgp2g
-source activate peptide-env
+source activate peptide-env || true
+PYTHON=/home/people/25205761/.conda/envs/peptide-env/bin/python
 
 cd $SLURM_SUBMIT_DIR
 
@@ -19,9 +20,9 @@ export PEPTIDE_CACHE_DIR=$HOME/peptide-cache
 mkdir -p $PEPTIDE_CACHE_DIR
 
 echo "===== prost-t5: sites ====="
-python code/esm2_size_experiment.py sites --model-size prost-t5
+$PYTHON code/esm2_size_experiment.py sites --model-size prost-t5
 
 echo "===== prost-t5: peptides ====="
-python code/esm2_size_experiment.py peptides --model-size prost-t5
+$PYTHON code/esm2_size_experiment.py peptides --model-size prost-t5
 
 echo "All prost-t5 jobs done."
