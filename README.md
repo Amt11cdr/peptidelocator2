@@ -1,6 +1,6 @@
 # PeptideLocator2
 
-Predicts cleavage sites and bioactive peptide regions in protein sequences using ESM2 protein language model embeddings.
+Predicts cleavage sites and peptide regions in protein sequences using ESM2 protein language model embeddings.
 
 ## Run the app
 
