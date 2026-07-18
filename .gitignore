@@ -1,1 +1,36 @@
-*.pqt
+# Data files (lab data, not for public repo)
+data/swissprot-peptide.tsv
+processed-data/peptide.tsv
+processed-data/*.pqt
+
+# Experiment results (raw)
+results/
+
+# Reports (internal)
+reports/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Mac metadata
+.DS_Store
+
+# Checkpoints (too large)
+checkpoints/
+
+# Logs
+logs/
+
+# Models (large binary files — distribute separately)
+models/*.pt
+
+# SLURM scripts (cluster-specific, not useful publicly)
+slurm_*.sh
+run_imbalance_experiments.sh
+
+# Misc
+*.egg-info/
+.pytest_cache/
