@@ -10,19 +10,18 @@
 mkdir -p logs
 
 module load anaconda3/2023.09-0-gcc-11.5.0-mxpgp2g
-source activate peptide-env || true
-PYTHON=/home/people/25205761/.conda/envs/peptide-env/bin/python
+source activate peptide-env
 
 cd $SLURM_SUBMIT_DIR
 
-# Write large T5 embedding cache to $HOME (scratch quota is full)
-export PEPTIDE_CACHE_DIR=$HOME/peptide-cache
+# Write large T5 embedding cache to node-local /tmp (scratch quota is full)
+export PEPTIDE_CACHE_DIR=/tmp/peptide-cache-$SLURM_JOB_ID
 mkdir -p $PEPTIDE_CACHE_DIR
 
 echo "===== prot-t5-xl: sites ====="
-$PYTHON code/esm2_size_experiment.py sites --model-size prot-t5-xl
+python code/esm2_size_experiment.py sites --model-size prot-t5-xl
 
 echo "===== prot-t5-xl: peptides ====="
-$PYTHON code/esm2_size_experiment.py peptides --model-size prot-t5-xl
+python code/esm2_size_experiment.py peptides --model-size prot-t5-xl
 
 echo "All prot-t5-xl jobs done."

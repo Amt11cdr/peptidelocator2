@@ -1,0 +1,35 @@
+# Ignore large data and experiment artifacts
+processed-data/
+results/
+checkpoints/
+plots/
+notebooks/
+data/
+reports/
+logs/
+
+# Ignore SLURM scripts and code not needed in the container
+code/
+slurm_*.sh
+run_imbalance_experiments.sh
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Git
+.git/
+.gitignore
+
+# Conda/venv
+*.conda
+*.egg-info/
+
+# Docs
+*.docx
+*.pdf
+
+# OS
+.DS_Store
