@@ -54,19 +54,25 @@ def reconstruct_filtered_sequences():
 
 # ── Attention extraction ───────────────────────────────────────────────────────
 
-def extract_attention_profiles(sequences, labels_per_protein, window, device, batch_size=8):
+def extract_attention_profiles(sequences, labels_per_protein, window, device,
+                               batch_size=8, use_random=False, rng=None):
     """
-    For each cleavage site, extract a centred attention window at each layer.
+    For each cleavage site (or random control position), extract a centred
+    attention window at each layer.
 
-    Aggregates two signals:
-      - inbound:  how much other residues attend TO the cleavage site
-      - outbound: how much the cleavage site attends TO other residues
+    Args:
+        use_random: if True, sample random non-site positions (same count per
+                    protein as real sites) instead of real cleavage sites.
+        rng:        np.random.Generator for reproducibility.
 
     Returns:
         inbound_profiles:  {layer: np.array (2*window+1,)}
         outbound_profiles: {layer: np.array (2*window+1,)}
         n_sites: int
     """
+    if rng is None:
+        rng = np.random.default_rng(42)
+
     print("Loading ESM2-8M from HuggingFace...")
     tokenizer = EsmTokenizer.from_pretrained("facebook/esm2_t6_8M_UR50D")
     model = EsmModel.from_pretrained(
@@ -77,7 +83,6 @@ def extract_attention_profiles(sequences, labels_per_protein, window, device, ba
 
     W = window
     size = 2 * W + 1
-    # Sum over all cleavage sites; divide at the end
     inbound_sum  = {i: np.zeros(size) for i in range(6)}
     outbound_sum = {i: np.zeros(size) for i in range(6)}
     n_sites = 0
@@ -95,56 +100,56 @@ def extract_attention_profiles(sequences, labels_per_protein, window, device, ba
                 max_length=1024,
             ).to(device)
 
-            outputs = model(
-                **tokens,
-                output_attentions=True,
-            )
+            outputs = model(**tokens, output_attentions=True)
 
-            # attentions: tuple of 6 tensors, each (batch, num_heads, seq+2, seq+2)
             for b_idx, (seq, labels) in enumerate(zip(batch_seqs, batch_labels)):
                 seq_len = len(seq)
-                site_positions = np.where(labels == 1)[0]
+                real_sites = np.where(labels == 1)[0]
+
+                if use_random:
+                    # Sample same number of random positions from non-site residues
+                    non_sites = np.where(labels == 0)[0]
+                    n_sample = min(len(real_sites), len(non_sites))
+                    if n_sample == 0:
+                        continue
+                    positions = rng.choice(non_sites, size=n_sample, replace=False)
+                else:
+                    positions = real_sites
+                    if len(positions) == 0:
+                        continue
 
                 for layer_idx in range(6):
-                    # attn shape: (num_heads, seq+2, seq+2) — +2 for BOS/EOS
                     attn = outputs.attentions[layer_idx][b_idx]
-                    # Average over heads, strip BOS/EOS → (seq_len, seq_len)
                     attn_mean = attn[:, 1:seq_len + 1, 1:seq_len + 1].mean(dim=0).cpu().numpy()
 
-                    for site_pos in site_positions:
-                        # Window bounds (clamped to sequence)
+                    for site_pos in positions:
                         start = site_pos - W
                         end   = site_pos + W + 1
-
-                        # Relative indices in the output array
                         out_start = max(0, W - site_pos)
                         out_end   = out_start + min(end, seq_len) - max(start, 0)
-
-                        # Actual sequence indices
                         seq_start = max(0, start)
                         seq_end   = min(seq_len, end)
 
-                        # Inbound: column at site_pos (other residues → cleavage site)
                         inbound_sum[layer_idx][out_start:out_end] += \
                             attn_mean[seq_start:seq_end, site_pos]
-
-                        # Outbound: row at site_pos (cleavage site → other residues)
                         outbound_sum[layer_idx][out_start:out_end] += \
                             attn_mean[site_pos, seq_start:seq_end]
 
-                        n_sites += 1 if layer_idx == 0 else 0  # count once
+                        n_sites += 1 if layer_idx == 0 else 0
 
             if i % (batch_size * 10) == 0:
-                print(f"  Processed {i}/{len(sequences)} proteins")
+                label = "random" if use_random else "real"
+                print(f"  [{label}] Processed {i}/{len(sequences)} proteins")
 
-    inbound_profiles  = {k: v / n_sites for k, v in inbound_sum.items()}
-    outbound_profiles = {k: v / n_sites for k, v in outbound_sum.items()}
+    inbound_profiles  = {k: v / max(n_sites, 1) for k, v in inbound_sum.items()}
+    outbound_profiles = {k: v / max(n_sites, 1) for k, v in outbound_sum.items()}
     return inbound_profiles, outbound_profiles, n_sites
 
 
 # ── Plotting ───────────────────────────────────────────────────────────────────
 
-def plot_attention_profiles(inbound, outbound, window, n_sites, output_dir):
+def plot_attention_profiles(inbound, outbound, window, n_sites, output_dir,
+                            inbound_rand=None, outbound_rand=None, n_rand=0):
     os.makedirs(output_dir, exist_ok=True)
     W = window
     x = np.arange(-W, W + 1)
@@ -164,9 +169,14 @@ def plot_attention_profiles(inbound, outbound, window, n_sites, output_dir):
     for layer_idx in range(6):
         ax = axes[layer_idx]
         ax.plot(x, inbound[layer_idx],  color="#EF5350", linewidth=2,
-                label="Inbound (others → site)")
+                label="Inbound — real sites")
         ax.plot(x, outbound[layer_idx], color="#42A5F5", linewidth=2,
-                label="Outbound (site → others)")
+                label="Outbound — real sites")
+        if inbound_rand is not None:
+            ax.plot(x, inbound_rand[layer_idx],  color="#EF5350", linewidth=1.5,
+                    linestyle="--", alpha=0.6, label="Inbound — random")
+            ax.plot(x, outbound_rand[layer_idx], color="#42A5F5", linewidth=1.5,
+                    linestyle="--", alpha=0.6, label="Outbound — random")
         ax.axvline(0, color="black", linewidth=1.2, linestyle="--", alpha=0.6)
         ax.set_title(layer_names[layer_idx], fontsize=11, fontweight="bold")
         ax.set_xlabel("Position relative to cleavage site", fontsize=9)
@@ -174,14 +184,14 @@ def plot_attention_profiles(inbound, outbound, window, n_sites, output_dir):
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
 
-    # Shared legend
     handles, labels_leg = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels_leg, loc="lower center", ncol=2,
-               fontsize=11, frameon=False, bbox_to_anchor=(0.5, -0.02))
+    fig.legend(handles, labels_leg, loc="lower center", ncol=4,
+               fontsize=10, frameon=False, bbox_to_anchor=(0.5, -0.02))
 
+    rand_note = f" vs {n_rand:,} random controls" if n_rand else ""
     fig.suptitle(
         f"ESM2-8M Attention Around Cleavage Sites by Layer\n"
-        f"(averaged over {n_sites:,} cleavage site positions, window=±{W})",
+        f"(averaged over {n_sites:,} real sites{rand_note}, window=±{W})",
         fontsize=13, fontweight="bold", y=1.01,
     )
     plt.tight_layout()
@@ -245,13 +255,25 @@ def main():
     total_sites = sum(l.sum() for l in labels_per_protein)
     print(f"Total proteins: {len(sequences)} | Total cleavage sites: {int(total_sites):,}")
 
-    print("\nExtracting attention profiles (this may take a while)...")
+    rng = np.random.default_rng(42)
+
+    print("\nExtracting attention profiles for REAL cleavage sites...")
     inbound, outbound, n_sites = extract_attention_profiles(
-        sequences, labels_per_protein, args.window, device, args.batch_size
+        sequences, labels_per_protein, args.window, device, args.batch_size,
+        use_random=False, rng=rng,
     )
 
-    print(f"\nPlotting (aggregated over {n_sites:,} cleavage sites)...")
-    plot_attention_profiles(inbound, outbound, args.window, n_sites, args.output)
+    print("\nExtracting attention profiles for RANDOM control positions...")
+    inbound_rand, outbound_rand, n_rand = extract_attention_profiles(
+        sequences, labels_per_protein, args.window, device, args.batch_size,
+        use_random=True, rng=rng,
+    )
+
+    print(f"\nPlotting (real: {n_sites:,} sites | random: {n_rand:,} positions)...")
+    plot_attention_profiles(
+        inbound, outbound, args.window, n_sites, args.output,
+        inbound_rand=inbound_rand, outbound_rand=outbound_rand, n_rand=n_rand,
+    )
 
 
 if __name__ == "__main__":
