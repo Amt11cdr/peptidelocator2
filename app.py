@@ -380,7 +380,7 @@ with gr.Blocks(
     gr.Markdown(
         "<div style='text-align:center;color:#888;font-size:12px;margin-top:16px;'>"
         "PeptideLocator2 · UCD Shields Lab · ESM2-8M · "
-        "<a href='https://github.com/shields-lab/peptide-locator-2' target='_blank'>GitHub</a>"
+        "<a href='https://github.com/Amt11cdr/peptidelocator2' target='_blank'>GitHub</a>"
         "</div>"
     )
 
