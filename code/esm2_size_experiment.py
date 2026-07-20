@@ -139,20 +139,28 @@ def compute_and_cache_embeddings(model_size: str) -> str:
     batch_size = {"8m": 64, "150m": 32, "650m": 8}.get(model_size, 8)
     reps = re.compute_reps(sequences, batch_size=batch_size)
 
-    # Flatten to per-residue
-    all_reps = []
-    for rep in reps:
-        for residue_rep in rep:
-            all_reps.append(residue_rep)
-    new_x = np.stack(all_reps).astype(np.float32)
-    print(f"  Embedding shape: {new_x.shape}")
-
     # Load existing partitions (for fold assignments and labels)
     partitions = pd.read_parquet(PARTITIONS_BASE)
-    assert len(partitions) == len(new_x), (
-        f"Mismatch: partitions has {len(partitions)} rows but "
-        f"embeddings have {len(new_x)} rows."
-    )
+
+    # Flatten to per-residue, trimming to actual sequence length to drop
+    # any special tokens that T5-style models may append.
+    all_reps = []
+    for seq, rep in zip(sequences, reps):
+        seq_len = len(seq)
+        rep_arr = np.array(rep)  # shape: (tokens, dim) — may include special tokens
+        rep_arr = rep_arr[:seq_len]  # keep only the first seq_len rows
+        for residue_rep in rep_arr:
+            all_reps.append(residue_rep)
+    new_x = np.stack(all_reps).astype(np.float32)
+    print(f"  Embedding shape (trimmed): {new_x.shape}")
+
+    if len(partitions) != len(new_x):
+        raise ValueError(
+            f"Mismatch after trimming: partitions has {len(partitions)} rows but "
+            f"embeddings have {len(new_x)} rows. "
+            f"Check that _reconstruct_filtered_sequences() returns exactly the "
+            f"same proteins as peptide-partitions.pqt."
+        )
 
     partitions["x"] = [row.tolist() for row in new_x]
     os.makedirs("processed-data", exist_ok=True)
